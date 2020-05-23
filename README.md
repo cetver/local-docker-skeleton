@@ -12,10 +12,10 @@ Change the current directory
 cd project_name
 ```
 
-Remove the `.git` and `.gitignore`
+Remove the `.git` files and the `README.md`
 
 ```shell script
-fdfind --hidden .git . --exec rm --verbose --recursive --force {}
+fdfind --hidden --ignore-case '.git|readme' . --exec rm --verbose --recursive --force {}
 ```
 
 Delete unnecessary images in the `.docker` directory (mysql, nginx, php, postgresql, redis)
