@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -e
+
+# shellcheck disable=SC1090
+source "${HOME}/.profile"
+
+if [ "$1" = "start" ]; then
+    composer --no-interaction self-update
+
+    # https://classic.yarnpkg.com/en/docs/cli/self-update/
+    yarn policies --non-interactive set-version
+
+    exec sudo --preserve-env php-fpm
+fi
+
+exec "$@"

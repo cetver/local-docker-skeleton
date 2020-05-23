@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+base_dir=$(dirname -- "$(realpath -- "$0")")
+# shellcheck source=common/ansi-format
+source "${base_dir}/common/ansi-format"
+
+command="${0}"
+
+ansi_format "$command" FG_YELLOW
+
+config_file="/etc/mysql/conf.d/docker-mysqld.cnf"
+config_content="
+##
+# Based on https://gist.github.com/fevangelou/fb72f36bbe333e059b66
+#          https://ruhighload.com/mycnfexample?ram=1
+##
+
+[mysqld]
+bind_address                    = 0.0.0.0
+max_allowed_packet              = 128M
+skip_external_locking
+skip_name_resolve
+
+##
+# InnoDB Settings
+##
+
+default_storage_engine          = InnoDB
+innodb_buffer_pool_instances    = 1     # Use 1 instance per 1GB of InnoDB pool size
+innodb_buffer_pool_size         = 716M  # Use up to 70-80% of RAM
+innodb_file_per_table           = 1
+innodb_flush_log_at_trx_commit  = 0
+innodb_flush_method             = O_DIRECT
+innodb_log_buffer_size          = 16M
+innodb_log_file_size            = 512M
+innodb_stats_on_metadata        = 0
+innodb_read_io_threads          = 22
+innodb_write_io_threads         = 22
+
+##
+# MyISAM Settings
+##
+
+key_buffer_size                 = 32M
+low_priority_updates            = 1
+concurrent_insert               = 2
+
+##
+# Connection Settings
+##
+
+max_connections                 = 200
+back_log                        = 200 # = max_connections
+thread_cache_size               = 10 # 8 + max_connections / 100
+thread_stack                    = 192K
+interactive_timeout             = 180
+wait_timeout                    = 180
+
+##
+# Buffer Settings
+##
+
+join_buffer_size                = 4M
+read_buffer_size                = 3M
+read_rnd_buffer_size            = 4M
+sort_buffer_size                = 4M
+
+##
+# Table Settings
+##
+
+table_open_cache                = 40000
+table_definition_cache          = 20400 # 400 + table_open_cache / 2
+open_files_limit                = 80210 # 10 + max_connections + (table_open_cache * 2) | max_connections * 5 | ulimit -n
+max_heap_table_size             = 128M
+tmp_table_size                  = 128M
+
+##
+# Search Settings
+##
+ft_min_word_len                 = 3 # Minimum length of words to be indexed for search results
+
+##
+# Logging
+##
+
+long_query_time                 = 2
+slow_query_log                  = 1 # /var/lib/mysql/{hostname}-slow.log
+"
+
+echo "$config_content" >> "$config_file"
+
+ansi_format "The '${config_file}' file has been created" FG_GREEN

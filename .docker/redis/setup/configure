@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+base_dir=$(dirname -- "$(realpath -- "$0")")
+# shellcheck source=common/ansi-format
+source "${base_dir}/common/ansi-format"
+
+command="${0} ${*}"
+script_name=$(basename "$0")
+
+function usage() {
+    cat <<EOF
+Usage: ${script_name} [OPTION]
+Configure Redis
+Options:
+    --version        Redis version in the 'x.x.x' format
+    --config-file    Path to Redis configuration file
+    --help           Display this message
+EOF
+}
+
+while [ "$1" != "" ]; do
+    case $1 in
+    --version)
+        shift
+        version=$1
+        ;;
+    --config-file)
+        shift
+        config_file=$1
+        ;;
+    --help)
+        usage
+        exit 0
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+done
+
+if [[ -z "$version" || -z "$config_file" ]]; then
+    usage
+    exit 1
+fi
+
+ansi_format "$command" FG_YELLOW
+
+config_file_dir=$(dirname "$config_file")
+mkdir --verbose --parents "$config_file_dir"
+
+config_file_url="https://raw.githubusercontent.com/antirez/redis/${version}/redis.conf"
+curl --compressed --output "$config_file" "$config_file_url"
+
+sed --in-place --regexp-extended "s@# maxmemory <bytes>@maxmemory 1gb@" "$config_file"
+sed --in-place --regexp-extended "s@# maxmemory-policy noeviction@maxmemory-policy allkeys-lru@" "$config_file"
+sed --in-place --regexp-extended "s@# io-threads 4@io-threads 2@" "$config_file"
+sed --in-place --regexp-extended "s@# unixsocket /tmp/redis.sock@unixsocket /var/run/redis/redis.sock@" "$config_file"
+sed --in-place --regexp-extended "s@# unixsocketperm 700@unixsocketperm 777@" "$config_file"
+sed --in-place --regexp-extended "s@rdbcompression yes@rdbcompression no@" "$config_file"
+sed --in-place --regexp-extended "s@rdbchecksum yes@rdbchecksum no@" "$config_file"
+sed --in-place --regexp-extended "s@timeout 0@timeout 300@" "$config_file"
+sed --in-place --regexp-extended "s@save 900 1@@" "$config_file"
+sed --in-place --regexp-extended "s@save 300 10@@" "$config_file"
+sed --in-place --regexp-extended "s@save 60 10000@save \"\"@" "$config_file"
+
+ansi_format "The '${config_file}' has been updated" FG_GREEN

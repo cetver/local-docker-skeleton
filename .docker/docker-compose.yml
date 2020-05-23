@@ -1,0 +1,243 @@
+version: "3.6"
+
+services:
+    ${PROJECT_NAME}-php:
+        image: ${PROJECT_NAME}-php-fpm-image
+        hostname: php7_4-debian
+        restart: always
+        depends_on:
+            - ${PROJECT_NAME}-mysql
+            - ${PROJECT_NAME}-postgresql
+            - ${PROJECT_NAME}-redis
+        cap_add:
+            # required by https://www.php.net/manual/en/install.fpm.configuration.php#slowlog
+            - SYS_PTRACE
+        build:
+            context: ./php
+            dockerfile: Dockerfile
+            args:
+                PHP_FPM_VERSION: 7.4
+                SOCKET_DIRS: 'php mysql postgresql redis'
+                SOURCES_LIST_COUNTRY_CODE: ${SOURCES_LIST_COUNTRY_CODE}
+                SYSTEM_LOCALE: ${SYSTEM_LOCALE}
+                SYSTEM_USERNAME: ${PROJECT_NAME}
+                SYSTEM_PASSWORD: qwe
+        volumes:
+            # config
+            -
+                type: volume
+                source: ${PROJECT_NAME}-php-etc-volume
+                target: /usr/local/etc
+            # source code
+            -
+                type: volume
+                source: ${PROJECT_NAME}-source-code-volume
+                target: /var/www/html
+            # socket
+            -
+                type: bind
+                source: ./php/volumes/run/php
+                target: /var/run/php
+            # mysql socket
+            -
+                type: bind
+                source: ./mysql/volumes/run
+                target: /var/run/mysql
+            # postgresql socket
+            -
+                type: bind
+                source: ./postgresql/volumes/run
+                target: /var/run/postgresql
+            # redis socket
+            -
+                type: bind
+                source: ./redis/volumes/run
+                target: /var/run/redis
+
+    ${PROJECT_NAME}-nginx:
+        image: ${PROJECT_NAME}-nginx-image
+        hostname: ${PROJECT_NAME}-nginx-debian
+        restart: always
+        depends_on:
+            - ${PROJECT_NAME}-php
+        build:
+            context: ./nginx
+            dockerfile: Dockerfile
+            args:
+                SOURCES_LIST_COUNTRY_CODE: ${SOURCES_LIST_COUNTRY_CODE}
+                SYSTEM_LOCALE: ${SYSTEM_LOCALE}
+                SOCKET_DIRS: php
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            # config
+            -
+                type: volume
+                source: ${PROJECT_NAME}-nginx-etc-volume
+                target: /etc/nginx
+            # source code
+            -
+                type: volume
+                source: ${PROJECT_NAME}-source-code-volume
+                target: /var/www/html
+            # php socket
+            -
+                type: bind
+                source: ./php/volumes/run/php
+                target: /var/run/php
+
+    ${PROJECT_NAME}-mysql:
+        image: ${PROJECT_NAME}-mysql-image
+        hostname: ${PROJECT_NAME}-mysql_8-debian
+        restart: always
+        security_opt:
+            # fix 'mbind: Operation not permitted'
+            - seccomp:unconfined
+        build:
+            context: ./mysql
+            dockerfile: Dockerfile
+            args:
+                MYSQL_VERSION: 8
+                SOURCES_LIST_COUNTRY_CODE: ${SOURCES_LIST_COUNTRY_CODE}
+                SYSTEM_LOCALE: ${SYSTEM_LOCALE}
+        environment:
+            MYSQL_ROOT_HOST: '%'
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: ${PROJECT_NAME}
+            MYSQL_USER: ${PROJECT_NAME}
+            MYSQL_PASSWORD: ${PROJECT_NAME}
+        ports:
+            - 3306:3306
+            - 33060:33060
+        volumes:
+            # config
+            -
+                type: volume
+                source: ${PROJECT_NAME}-mysql-etc-volume
+                target: /etc/mysql
+            # db data
+            -
+                type: volume
+                source: ${PROJECT_NAME}-mysql-lib-volume
+                target: /var/lib/mysql
+            # socket
+            -
+                type: bind
+                source: ./mysql/volumes/run # <-- chmod 777 on host machine
+                target: /var/run/mysqld
+
+    ${PROJECT_NAME}-postgresql:
+        image: ${PROJECT_NAME}-postgresql-image
+        hostname: ${PROJECT_NAME}-postgresql_12-debian
+        restart: always
+        build:
+            context: ./postgresql
+            dockerfile: Dockerfile
+            args:
+                POSTGRES_VERSION: 12
+                SOURCES_LIST_COUNTRY_CODE: ${SOURCES_LIST_COUNTRY_CODE}
+                SYSTEM_LOCALE: ${SYSTEM_LOCALE}
+        environment:
+            POSTGRES_DB: ${PROJECT_NAME}
+            POSTGRES_PASSWORD: root
+            POSTGRES_INITDB_ARGS: --locale=${SYSTEM_LOCALE}
+        ports:
+            - 5432:5432
+        volumes:
+            # db data
+            -
+                type: volume
+                source: ${PROJECT_NAME}-postgresql-lib-volume
+                target: /var/lib/postgresql/data
+            # socket
+            -
+                type: bind
+                source: ./postgresql/volumes/run
+                target: /var/run/postgresql
+
+    ${PROJECT_NAME}-redis:
+        image: ${PROJECT_NAME}-redis-image
+        hostname: ${PROJECT_NAME}-redis_6-debian
+        restart: always
+        privileged: true # see Dockerfile.CMD
+        build:
+            context: ./redis
+            dockerfile: Dockerfile
+            args:
+                REDIS_VERSION: 6
+                SOURCES_LIST_COUNTRY_CODE: ${SOURCES_LIST_COUNTRY_CODE}
+                SYSTEM_LOCALE: ${SYSTEM_LOCALE}
+        ports:
+            - 6379:6379
+        volumes:
+            # config
+            -
+                type: volume
+                source: ${PROJECT_NAME}-redis-etc-volume
+                target: /etc/redis
+            # data
+            -
+                type: volume
+                source: ${PROJECT_NAME}-redis-lib-volume
+                target: /data
+            # socket
+            -
+                type: bind
+                source: ./redis/volumes/run
+                target: /var/run/redis
+
+volumes:
+    # php
+    ${PROJECT_NAME}-php-etc-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/php/volumes/etc
+            type: none
+            o: bind
+    ${PROJECT_NAME}-source-code-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/..
+            type: none
+            o: bind
+    # nginx
+    ${PROJECT_NAME}-nginx-etc-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/nginx/volumes/etc
+            type: none
+            o: bind
+    # mysql
+    ${PROJECT_NAME}-mysql-etc-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/mysql/volumes/etc
+            type: none
+            o: bind
+    ${PROJECT_NAME}-mysql-lib-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/mysql/volumes/lib
+            type: none
+            o: bind
+    # postgresql
+    ${PROJECT_NAME}-postgresql-lib-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/postgresql/volumes/lib
+            type: none
+            o: bind
+    # redis
+    ${PROJECT_NAME}-redis-etc-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/redis/volumes/etc
+            type: none
+            o: bind
+    ${PROJECT_NAME}-redis-lib-volume:
+        driver: local
+        driver_opts:
+            device: ${PWD}/redis/volumes/lib
+            type: none
+            o: bind
