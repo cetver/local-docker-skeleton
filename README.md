@@ -222,10 +222,17 @@ skeleton@php7_4-debian:/var/www/html$ echo "
 /.yarn
 .yarnrc
 " | tee --append .gitignore
-skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended "s@;?opcache\.preload=.*@opcache\.preload=/var/www/html/var/cache/dev/App_KernelDevDebugContainer.preload.php@" "${PHP_INI_DIR}/php-cli.ini"
-skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended "s@;?opcache\.preload_user=.*@opcache\.preload_user=$(whoami)@" "${PHP_INI_DIR}/php-cli.ini"
-skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended "s@;?opcache\.preload=.*@opcache\.preload=/var/www/html/var/cache/dev/App_KernelDevDebugContainer.preload.php@" "${PHP_INI_DIR}/php-fpm-fcgi.ini"
-skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended "s@;?opcache\.preload_user=.*@opcache\.preload_user=$(ps -o user= -p $(pidof -s php-fpm))@" "${PHP_INI_DIR}/php-fpm-fcgi.ini"
+skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended \
+    "s@;?opcache\.preload=.*@opcache\.preload=/var/www/html/var/cache/dev/App_KernelDevDebugContainer.preload.php@" \
+    "${PHP_INI_DIR}/php-cli.ini"
+skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended \
+    "s@;?opcache\.preload_user=.*@opcache\.preload_user=$(whoami)@" "${PHP_INI_DIR}/php-cli.ini"
+skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended \
+    "s@;?opcache\.preload=.*@opcache\.preload=/var/www/html/var/cache/dev/App_KernelDevDebugContainer.preload.php@" \
+    "${PHP_INI_DIR}/php-fpm-fcgi.ini"
+skeleton@php7_4-debian:/var/www/html$ sed --in-place --regexp-extended \
+    "s@;?opcache\.preload_user=.*@opcache\.preload_user=$(ps -o user= -p $(pidof -s php-fpm))@" \
+    "${PHP_INI_DIR}/php-fpm-fcgi.ini"
 skeleton@php7_4-debian:/var/www/html$ sudo kill -USR2 1
 ```
 

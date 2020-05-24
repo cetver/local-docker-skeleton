@@ -1,25 +1,12 @@
 #!/usr/bin/env python3
+"""
+Create the patch file based on "nginx-source/debian/rules" by changing CFLAGS (configure flags) for the "nginx" and the "nginx-dbg" packages
+"""
 
-import sys
-import getopt
+import argparse
 import os
 import re
-
-
-def usage():
-    script_name = os.path.basename(sys.argv[0])
-    help = f'''
-Usage: {script_name} [OPTION]
-Create the patch file based on "nginx-source/debian/rules" by changing CFLAGS (configure flags) for "nginx" and "nginx-dbg" packages
-
-Options:
-    --debian-rules-file    Path to the "nginx-source/debian/rules" file
-    --nginx-cflags         CFLAGS (configure flags) for the "nginx" package
-    --nginx-dbg-cflags     CFLAGS (configure flags) for the "nginx-dbg" package
-    --help                 Display this message
-    '''
-
-    print(help)
+import sys
 
 
 def ansi_format(string, color):
@@ -38,33 +25,41 @@ def ansi_format(string, color):
     print(f'\033[0m\033[0{fg_color}m{string}\033[0m')
 
 
-def main(args):
-    debian_rules_file = ''
-    nginx_cflags = ''
-    nginx_dbg_cflags = ''
+def type_writable_file(file):
+    if not os.path.isfile(file):
+        raise argparse.ArgumentTypeError(f'The "{file}" file does not exists')
+    if not os.access(file, os.W_OK):
+        raise argparse.ArgumentTypeError(f'The "{file}" file is not writable')
 
-    try:
-        short_options = ''
-        long_options = [
-            'help', 'debian-rules-file=', 'nginx-cflags=', 'nginx-dbg-cflags='
-        ]
-        (options, arguments) = getopt.getopt(args, short_options, long_options)
-    except getopt.GetoptError:
-        usage()
-        sys.exit(1)
+    return file
 
-    for (option, value) in options:
-        if option == '--help':
-            usage()
-            sys.exit()
-        elif option == '--debian-rules-file':
-            debian_rules_file = value
-        elif option == '--nginx-cflags':
-            nginx_cflags = value
-        elif option == '--nginx-dbg-cflags':
-            nginx_dbg_cflags = value
 
-    script_name = sys.argv[0]
+def get_parser():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=lambda prog: argparse.
+                                     RawTextHelpFormatter(prog, width=85))
+    parser.add_argument('--debian-rules-file',
+                        type=type_writable_file,
+                        required=True,
+                        help='Path to the "nginx-source/debian/rules" file')
+    parser.add_argument(
+        '--nginx-cflags',
+        required=True,
+        help='CFLAGS (configure flags) for the "nginx" package')
+    parser.add_argument(
+        '--nginx-dbg-cflags',
+        required=True,
+        help='CFLAGS (configure flags) for the "nginx-dbg" package')
+
+    return parser
+
+
+def main(script_name, args):
+    options = get_parser().parse_args(args)
+    debian_rules_file = options.debian_rules_file
+    nginx_cflags = options.nginx_cflags
+    nginx_dbg_cflags = options.nginx_dbg_cflags
+
     script_args = ' '.join(args)
     command = f'{script_name} {script_args}'
     ansi_format(command, 'yellow')
@@ -98,4 +93,4 @@ To apply the patch: patch --backup {debian_rules_file} {patch_file}
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main(sys.argv[0], sys.argv[1:])

@@ -50,7 +50,7 @@ rg --no-line-number --multiline --multiline-dotall \
 --regexp 'cd \$\(BUILDDIR_nginx\) && \\(.*?)touch \$@' --replace '$1' "$nginx_rules_file" | \
 tr '\n' '\0' | \
 sed --regexp-extended "s@--error-log-path=/var/log/nginx/error\.log@--error-log-path=/dev/stderr@" | \
-sed --regexp-extended "s@--http-log-path=/var/log/nginx/access\.log@--http-log-path=/dev/stdout1@" | \
+sed --regexp-extended "s@--http-log-path=/var/log/nginx/access\.log@--http-log-path=/dev/stdout@" | \
 sed --regexp-extended "s@--http-client-body-temp-path=/var/cache/nginx/client_temp@--http-client-body-temp-path=${nginx_lib_dir}/body@" | \
 sed --regexp-extended "s@--http-proxy-temp-path=/var/cache/nginx/proxy_temp@--http-proxy-temp-path=${nginx_lib_dir}/proxy@" | \
 sed --regexp-extended "s@--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp@--http-fastcgi-temp-path=${nginx_lib_dir}/fastcgi@" | \
@@ -64,7 +64,7 @@ rg --no-line-number --multiline --multiline-dotall \
 --regexp 'cd \$\(BUILDDIR_nginx_debug\) && \\(.*?)touch \$@' --replace '$1' "$nginx_rules_file" | \
 tr '\n' '\0' | \
 sed --regexp-extended "s@--error-log-path=/var/log/nginx/error\.log@--error-log-path=/dev/stderr@" | \
-sed --regexp-extended "s@--http-log-path=/var/log/nginx/access\.log@--http-log-path=/dev/stdout1@" | \
+sed --regexp-extended "s@--http-log-path=/var/log/nginx/access\.log@--http-log-path=/dev/stdout@" | \
 sed --regexp-extended "s@--http-client-body-temp-path=/var/cache/nginx/client_temp@--http-client-body-temp-path=${nginx_lib_dir}/body@" | \
 sed --regexp-extended "s@--http-proxy-temp-path=/var/cache/nginx/proxy_temp@--http-proxy-temp-path=${nginx_lib_dir}/proxy@" | \
 sed --regexp-extended "s@--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp@--http-fastcgi-temp-path=${nginx_lib_dir}/fastcgi@" | \
