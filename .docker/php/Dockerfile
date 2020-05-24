@@ -1,6 +1,8 @@
 ARG PHP_FPM_VERSION=7.4
 FROM php:${PHP_FPM_VERSION}-fpm
 
+ARG NODEJS_MAJOR_VERSION
+
 ARG SOCKET_DIRS=php
 
 ARG SOURCES_LIST_COUNTRY_CODE=md
@@ -13,7 +15,8 @@ ARG SYSTEM_PASSWORD=qwe
 
 ENV DEBIAN_FRONTEND=noninteractive \
     SETUP_DIR=/tmp/setup \
-    COMPOSER_HOME=/var/www/html/.composer
+    COMPOSER_HOME=/var/www/html/.composer \
+    NODEJS_MAJOR_VERSION=${NODEJS_MAJOR_VERSION}
 
 COPY setup ${SETUP_DIR}
 
@@ -53,21 +56,20 @@ RUN set -e; \
         # system user
         sudo \
         # composer
-        git unzip \
-        # nodejs
-        gnupg2; \
+        git unzip; \
     \
     "${SETUP_DIR}/common/add-system-user" --username "${SYSTEM_USERNAME}" --password "${SYSTEM_PASSWORD}"; \
     echo "${SYSTEM_USERNAME}    ALL=NOPASSWD:SETENV: /usr/local/sbin/php-fpm" >> "/etc/sudoers.d/${SYSTEM_USERNAME}"; \
     \
     "${SETUP_DIR}/install-composer" --username "${SYSTEM_USERNAME}"; \
     \
-    NODE_JS_VERSION="14"; \
-    "${SETUP_DIR}/install-nodejs" --version "$NODE_JS_VERSION"; \
+    if [ -n "${NODEJS_MAJOR_VERSION}" ]; then \
+        "${SETUP_DIR}/common/apt-get-install" gnupg2; \
+        "${SETUP_DIR}/install-nodejs" --version "$NODEJS_MAJOR_VERSION"; \
+        apt-get purge --yes gnupg2; \
+    fi; \
     \
-    apt-get purge --yes gnupg2; \
     "${SETUP_DIR}/common/clear-fs"; \
-    \
     fdfind --type file --exclude "$(basename "$PHP_FPM_WWW_CONF")" . "$PHP_FPM_D_DIR" --exec rm --verbose --force {}; \
     rm --verbose --recursive --force /usr/local/php/man; \
     rm --verbose --recursive --force "$SETUP_DIR"

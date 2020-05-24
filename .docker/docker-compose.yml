@@ -17,6 +17,7 @@ services:
             dockerfile: Dockerfile
             args:
                 PHP_FPM_VERSION: 7.4
+                NODEJS_MAJOR_VERSION: 14
                 SOCKET_DIRS: 'php mysql postgresql redis'
                 SOURCES_LIST_COUNTRY_CODE: ${SOURCES_LIST_COUNTRY_CODE}
                 SYSTEM_LOCALE: ${SYSTEM_LOCALE}
