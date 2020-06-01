@@ -4,7 +4,6 @@ services:
     ${PROJECT_NAME}-php:
         image: ${PROJECT_NAME}-php-fpm-image
         hostname: php7_4-debian
-        restart: always
         depends_on:
             - ${PROJECT_NAME}-mysql
             - ${PROJECT_NAME}-postgresql
@@ -58,7 +57,6 @@ services:
     ${PROJECT_NAME}-nginx:
         image: ${PROJECT_NAME}-nginx-image
         hostname: ${PROJECT_NAME}-nginx-debian
-        restart: always
         depends_on:
             - ${PROJECT_NAME}-php
         build:
@@ -91,7 +89,6 @@ services:
     ${PROJECT_NAME}-mysql:
         image: ${PROJECT_NAME}-mysql-image
         hostname: ${PROJECT_NAME}-mysql_8-debian
-        restart: always
         security_opt:
             # fix 'mbind: Operation not permitted'
             - seccomp:unconfined
@@ -131,7 +128,6 @@ services:
     ${PROJECT_NAME}-postgresql:
         image: ${PROJECT_NAME}-postgresql-image
         hostname: ${PROJECT_NAME}-postgresql_12-debian
-        restart: always
         build:
             context: ./postgresql
             dockerfile: Dockerfile
@@ -160,7 +156,6 @@ services:
     ${PROJECT_NAME}-redis:
         image: ${PROJECT_NAME}-redis-image
         hostname: ${PROJECT_NAME}-redis_6-debian
-        restart: always
         privileged: true # see Dockerfile.CMD
         build:
             context: ./redis
