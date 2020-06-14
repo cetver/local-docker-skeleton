@@ -12,10 +12,16 @@ Change the current directory
 cd project_name
 ```
 
-Remove the `.git` files and the `README.md`
+Remove the `.git*` files
 
 ```shell script
-fdfind --hidden --ignore-case '.git|readme' . --exec rm --verbose --recursive --force {}
+fdfind --hidden --ignore-case --exclude setup '.git' . --exec rm --verbose --recursive --force {}
+```
+
+Remove the `README.md` file 
+
+```shell script
+rm --verbose README.md
 ```
 
 Delete unnecessary images in the `.docker` directory (mysql, nginx, php, postgresql, redis)
@@ -91,6 +97,7 @@ fdfind --type directory etc .docker --exec sudo chown --verbose --recursive "$(w
 |   |   |                                         for "nginx" and "nginx-dbg" packages
 │   │   ├── install                             = *** CONFIGURE AND INSTALL WITH REQUIRED FLAGS / MODULES ***
 │   │   └── template                            = *** INITIAL CONFIG FILES TO BE COPIED INTO /etc/nginx *** 
+|   |       ├── dhparam.pem                     = *** SEE .docker/nginx/setup/template/includes/ssl.conf ***
 │   │       ├── includes
 │   │       │   ├── cache-files.conf
 │   │       │   ├── cache-headers.conf
@@ -109,8 +116,16 @@ fdfind --type directory etc .docker --exec sudo chown --verbose --recursive "$(w
 │   │       ├── nginx.conf
 │   │       ├── sites-available
 │   │       │   └── skeleton.conf
-│   │       └── sites-enabled
-│   │           └── .gitignore
+│   │       ├── sites-enabled
+│   │       |   └── .gitignore
+│   │       └── ssl
+│   │           ├── CA.crt
+│   │           ├── CA.key
+│   │           ├── CA.srl
+│   │           ├── README.md                     = *** CERTIFICATE GENERATION INSTRUCTIONS *** 
+│   │           ├── skeleton.crt
+│   │           ├── skeleton.csr
+│   │           └── skeleton.key
 │   └── volumes                                 = Volumes directory
 │       ├── etc                                 = /etc/nginx
 │       │   └── .gitignore
@@ -208,6 +223,12 @@ skeleton@php7_4-debian:/var/www/html$ echo "
 ##
 
 /.docker
+
+##
+# JetBrains IDE files
+##
+
+/.idea
 
 ##
 # Composer
@@ -420,3 +441,27 @@ skeleton@php7_4-debian:/var/www/html$ yarn encore dev
 ```
 
 Open [http://skeleton.loc/](http://skeleton.loc/)
+
+# Pre-commit actions
+
+If you want to deliver a project, for example, you created the `skeleton` project from example above 
+and commit it to your repository
+
+**Stop the `docker-compose` services**
+
+```shell script
+# remove volumes content
+sudo fdfind --type directory 'etc|lib' .docker/*/volumes --exec /bin/bash -c "rm --verbose --recursive {}/*"
+
+# Exit 137
+sudo rm --verbose --recursive .docker/redis/volumes/run/*
+
+# change directories ownership
+sudo chown --verbose --recursive "$(whoami)": .docker
+
+# change directories permissions
+sudo chmod --verbose --recursive 744 .docker
+
+# empty directories will tracked by git
+fdfind --type directory --type empty . .docker --exec touch {}/.gitignore
+```
